@@ -1,0 +1,63 @@
+// Prisma schema for Coy Discover
+// Database: SQLite (local development)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  age       Int
+  photo     String
+  bio       String
+  city      String
+  college   String?
+  interests String   // stored as JSON string (SQLite doesn't have array type)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Swipes sent by this user
+  swipesSent     Swipe[] @relation("SwipeSender")
+  // Swipes received by this user
+  swipesReceived Swipe[] @relation("SwipeReceiver")
+
+  // Matches where this user is userOne or userTwo
+  matchesAsOne Match[] @relation("MatchUserOne")
+  matchesAsTwo Match[] @relation("MatchUserTwo")
+}
+
+model Swipe {
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  action     String   // "LIKE" or "PASS"
+  createdAt  DateTime @default(now())
+
+  fromUser User @relation("SwipeSender", fields: [fromUserId], references: [id])
+  toUser   User @relation("SwipeReceiver", fields: [toUserId], references: [id])
+
+  // Prevent duplicate swipe records (one user can only swipe another once)
+  @@unique([fromUserId, toUserId])
+}
+
+model Match {
+  id        String   @id @default(cuid())
+  userOneId String
+  userTwoId String
+  createdAt DateTime @default(now())
+
+  userOne User @relation("MatchUserOne", fields: [userOneId], references: [id])
+  userTwo User @relation("MatchUserTwo", fields: [userTwoId], references: [id])
+
+  // Prevent duplicate matches regardless of ordering
+  // We enforce userOneId < userTwoId at the application layer,
+  // so this unique constraint covers both orderings.
+  @@unique([userOneId, userTwoId])
+}
+
