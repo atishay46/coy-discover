@@ -1,12 +1,10 @@
-import { mockAdapter } from '@/data/mockAdapter'
 import type { FeedResponse } from '@/types'
 
-const useMockData = process.env.NEXT_PUBLIC_USE_MOCK_DATA !== 'false'
-
+// Fetches profiles from the real API.
+// The API server filters out already-swiped profiles per the demo user in the database.
 export const feedService = {
   async getFeed(): Promise<FeedResponse> {
-    if (useMockData) return { profiles: await mockAdapter.getFeed() }
-    const response = await fetch('/feed')
+    const response = await fetch('/api/feed')
     if (!response.ok) throw new Error('We could not load profiles right now.')
     return response.json() as Promise<FeedResponse>
   },

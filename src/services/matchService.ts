@@ -1,12 +1,10 @@
-import { mockAdapter } from '@/data/mockAdapter'
 import type { Match } from '@/types'
 
-const useMockData = process.env.NEXT_PUBLIC_USE_MOCK_DATA !== 'false'
-
+// Fetches confirmed mutual matches from the real API.
+// The API reads from the Match table in the database — data persists across page refreshes.
 export const matchService = {
   async getMatches(): Promise<Match[]> {
-    if (useMockData) return mockAdapter.getMatches()
-    const response = await fetch('/matches')
+    const response = await fetch('/api/matches')
     if (!response.ok) throw new Error('We could not load your matches right now.')
     return response.json() as Promise<Match[]>
   },

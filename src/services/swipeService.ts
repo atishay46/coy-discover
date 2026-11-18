@@ -1,12 +1,10 @@
-import { mockAdapter } from '@/data/mockAdapter'
 import type { SwipeAction, SwipeResponse } from '@/types'
 
-const useMockData = process.env.NEXT_PUBLIC_USE_MOCK_DATA !== 'false'
-
+// Submits a swipe action to the real API.
+// The API records it in the database and returns whether a mutual match was created.
 export const swipeService = {
   async submitSwipe(targetUserId: string, action: SwipeAction): Promise<SwipeResponse> {
-    if (useMockData) return mockAdapter.submitSwipe(targetUserId, action)
-    const response = await fetch('/swipe', {
+    const response = await fetch('/api/swipe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ targetUserId, action }),

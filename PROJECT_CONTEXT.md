@@ -1,16 +1,16 @@
 # PROJECT_CONTEXT.md — Coy Discover
 
-> Last updated: **Phase 2 complete** (2026-11-18)
+> Last updated: **Phase 3 complete — application fully integrated and verified** (2026-11-18)
 
 ---
 
 ## Project Objective
 
-Build a standalone **Coy Discover** dating-app feature as a technical assignment.
+Build a standalone **Coy Discover** dating-app feature as a full-stack technical assignment.
 
-The existing project already has a fully working frontend (Next.js, React, TypeScript, Tailwind CSS) with profile cards, swipe interactions, animations, navigation and mock data.
+Starting from an existing Next.js frontend with mock data and in-memory state, the goal was to convert it into a fully persistent application backed by **Prisma + SQLite** without redesigning the existing UI.
 
-The goal is to convert the mock implementation into a **persistent application** using **Prisma + SQLite**, without breaking or redesigning the existing frontend.
+**All three phases are complete.** The application now reads and writes all data through real API routes, persists across page refreshes and server restarts, and correctly handles matching, privacy, and edge cases.
 
 ---
 
@@ -18,71 +18,70 @@ The goal is to convert the mock implementation into a **persistent application**
 
 | Layer | Technology | Version |
 |---|---|---|
-| Framework | Next.js | 16.4.6 |
+| Framework | Next.js (App Router) | 16.4.6 |
 | UI | React | ^19 |
 | Language | TypeScript | 5.7.3 |
 | Styling | Tailwind CSS | ^4.3.3 |
 | Animations | Framer Motion | ^14.14.0 |
 | Icons | Lucide React | ^1.16.0 |
-| ORM | Prisma | ^6.3.1 (stable) |
+| ORM | Prisma | 6.19.3 |
 | Database | SQLite (local dev) | via Prisma datasource |
-| DB client | @prisma/client | ^6.3.1 |
+| DB client | @prisma/client | 6.19.3 |
 | Seed runner | tsx | ^4.19.3 |
 | Package manager | pnpm | 12.3.4 |
 
 ---
 
-## Project Structure
+## Final Project Structure
 
 ```
 project/
 ├── prisma/
-│   ├── schema.prisma          # Prisma schema (User, Swipe, Match)
-│   ├── seed.ts                # Idempotent seed script (tsx)
-│   ├── test-logic.js          # Phase 2 logic + edge-case test suite
-│   ├── dev.db                 # SQLite database (gitignored)
+│   ├── schema.prisma                      # DB schema: User, Swipe, Match
+│   ├── seed.ts                            # Idempotent seed (tsx)
+│   ├── test-logic.js                      # 26-case logic test suite
+│   ├── dev.db                             # SQLite database (gitignored)
 │   └── migrations/
 │       └── 20261118172331_init/
-│           └── migration.sql  # Initial schema migration
+│           └── migration.sql
 ├── src/
 │   ├── app/
-│   │   ├── api/               # ← NEW in Phase 2
-│   │   │   ├── feed/route.ts    # GET /api/feed
-│   │   │   ├── swipe/route.ts   # POST /api/swipe
-│   │   │   └── matches/route.ts # GET /api/matches
+│   │   ├── api/
+│   │   │   ├── feed/route.ts              # GET /api/feed
+│   │   │   ├── swipe/route.ts             # POST /api/swipe
+│   │   │   └── matches/route.ts           # GET /api/matches
 │   │   ├── layout.tsx
-│   │   ├── page.tsx           # Root → DiscoverApp
+│   │   ├── page.tsx                       # Root → DiscoverApp
 │   │   ├── discover/page.tsx
 │   │   ├── home/page.tsx
 │   │   └── matches/page.tsx
 │   ├── components/
-│   │   ├── BottomNavigation.tsx
-│   │   ├── DiscoverApp.tsx    # Main swipe UI, calls services
-│   │   └── ProfileCard.tsx    # Swipeable card with Framer Motion
+│   │   ├── DiscoverApp.tsx                # Swipe UI + match celebration
+│   │   ├── ProfileCard.tsx                # Draggable card (Framer Motion)
+│   │   └── BottomNavigation.tsx
 │   ├── data/
-│   │   ├── mockAdapter.ts     # In-memory/sessionStorage mock (unchanged)
-│   │   └── mockProfiles.ts    # 30 static profiles (unchanged)
+│   │   ├── mockAdapter.ts                 # (retained, unused at runtime)
+│   │   └── mockProfiles.ts               # (retained, unused at runtime)
 │   ├── lib/
-│   │   └── db.ts              # Prisma client singleton
+│   │   └── db.ts                          # Prisma singleton
 │   ├── services/
-│   │   ├── feedService.ts     # Fetches profiles (mock or API)
-│   │   ├── swipeService.ts    # Submits swipes (mock or API)
-│   │   └── matchService.ts    # Gets matches (mock or API)
+│   │   ├── feedService.ts                 # → GET /api/feed
+│   │   ├── swipeService.ts                # → POST /api/swipe
+│   │   └── matchService.ts                # → GET /api/matches
 │   └── types/
-│       └── index.ts           # UserProfile, SwipeAction, Match types
-├── components/
-│   └── ui/button.tsx          # shadcn button component
-├── lib/
-│   └── utils.ts               # Tailwind merge utility
-├── public/                    # Static assets
-├── .env                       # DATABASE_URL (gitignored)
+│       └── index.ts
+├── components/ui/button.tsx
+├── lib/utils.ts
+├── public/
+├── .env                                   # DATABASE_URL (gitignored)
 ├── .gitignore
 ├── .npmrc
 ├── package.json
-├── pnpm-workspace.yaml        # pnpm v12 build allowlist
+├── pnpm-workspace.yaml
 ├── next.config.mjs
 ├── tsconfig.json
-└── PROJECT_CONTEXT.md         # This file
+├── README.md
+└── PROJECT_CONTEXT.md
 ```
 
 ---
@@ -100,17 +99,13 @@ Represents both the demo user and all discoverable profiles.
 | age | Int | Age in years |
 | photo | String | Unsplash URL |
 | bio | String | Short bio |
-| city | String | Location label |
-| college | String? | Optional college name |
+| city | String | Location label (mapped → `location` in API) |
+| college | String? | Optional |
 | interests | String | JSON-encoded string array |
 | createdAt | DateTime | Auto timestamp |
 | updatedAt | DateTime | Auto timestamp |
 
-> **Note on `interests`:** SQLite has no native array type. Interests are stored as a JSON string (`JSON.stringify(array)`) and parsed at the application layer. Phase 2 API routes must `JSON.parse(user.interests)` before returning to the frontend.
-
 ### Swipe
-
-Records every swipe action from one user to another.
 
 | Field | Type | Notes |
 |---|---|---|
@@ -120,40 +115,31 @@ Records every swipe action from one user to another.
 | action | String | `"LIKE"` or `"PASS"` |
 | createdAt | DateTime | Auto timestamp |
 
-**Unique constraint:** `(fromUserId, toUserId)` — prevents duplicate swipes.
+**Unique constraint:** `(fromUserId, toUserId)`
 
 ### Match
-
-A mutual match between two users.
 
 | Field | Type | Notes |
 |---|---|---|
 | id | String (cuid) | Primary key |
-| userOneId | String | FK → User.id |
-| userTwoId | String | FK → User.id |
+| userOneId | String | FK → User.id (always lexicographically smaller) |
+| userTwoId | String | FK → User.id (always lexicographically larger) |
 | createdAt | DateTime | Auto timestamp |
 
-**Unique constraint:** `(userOneId, userTwoId)` — the application must normalize ordering (always store smaller ID as `userOneId`) to prevent duplicate matches regardless of direction.
-
-### Relationships
-
-```
-User ──(swipesSent)──► Swipe ◄──(swipesReceived)── User
-User ──(matchesAsOne)──► Match ◄──(matchesAsTwo)── User
-```
+**Unique constraint:** `(userOneId, userTwoId)` — IDs are normalized at write time.
 
 ---
 
-## API Endpoints (Phase 2)
+## API Endpoints
 
 ### `GET /api/feed`
 
 Returns all profiles the demo user has **not yet swiped on**.
 
-- Excludes `demo-user-01` from results
-- Excludes any profile the demo user already has a Swipe record for
-- Returns profiles ordered alphabetically by name
-- `hasLikedMe` is always `false` (privacy rule)
+- Excludes `demo-user-01`
+- Excludes already-swiped profiles (looks up `Swipe` table where `fromUserId = demo-user-01`)
+- Ordered alphabetically by name
+- `hasLikedMe` is always `false`
 
 **Response:** `{ profiles: UserProfile[] }`
 
@@ -161,36 +147,24 @@ Returns all profiles the demo user has **not yet swiped on**.
 
 ### `POST /api/swipe`
 
-Records a swipe action and detects mutual matches.
+Records a swipe. If action is LIKE and the target already liked the demo user, creates a Match.
 
-**Request body:** `{ targetUserId: string, action: "LIKE" | "PASS" }`
+**Body:** `{ targetUserId: string, action: "LIKE" | "PASS" }`
 
-**Validation:**
-- `targetUserId` must be a non-empty string
-- `action` must be exactly `"LIKE"` or `"PASS"`
-- Cannot swipe on `demo-user-01` (self)
-- Target profile must exist in the database (404 if not)
-- Duplicate swipes are rejected (409 Conflict)
+**Validation:** 400 (bad input), 404 (unknown profile), 409 (duplicate swipe)
 
 **Matching logic:**
-1. Record the swipe (`fromUserId = demo-user-01`, `toUserId = targetUserId`, `action`)
-2. If `action === "LIKE"`, check whether `targetUserId` has an existing LIKE swipe directed at `demo-user-01`
-3. If mutual: normalize IDs (`min(a,b)` → `userOneId`, `max(a,b)` → `userTwoId`) and upsert a Match record
-4. Return `{ success: true, isMatch: boolean, matchedProfile?: UserProfile }`
+1. Create Swipe record
+2. If LIKE: check for reverse LIKE swipe (`target → demo-user-01`)
+3. If mutual: normalize IDs (`min` → `userOneId`, `max` → `userTwoId`), upsert Match
 
-**Response on success:** `{ success: true, isMatch: false }` or `{ success: true, isMatch: true, matchedProfile: UserProfile }`  
-**Error responses:** 400 (validation), 404 (profile not found), 409 (duplicate)
+**Response:** `{ success: true, isMatch: boolean, matchedProfile?: UserProfile }`
 
 ---
 
 ### `GET /api/matches`
 
-Returns all confirmed mutual matches for the demo user.
-
-- Queries Match rows where `userOneId = demo-user-01` OR `userTwoId = demo-user-01`
-- Resolves the "other" user from the match row
-- Returns newest matches first (`orderBy: createdAt desc`)
-- `hasLikedMe` is always `false` on returned profiles
+Returns all confirmed mutual matches for the demo user, newest first.
 
 **Response:** `Match[]` where `Match = { id, profile: UserProfile, matchedAt: string }`
 
@@ -198,213 +172,168 @@ Returns all confirmed mutual matches for the demo user.
 
 ## Privacy Rules
 
-1. **`hasLikedMe` is always `false`** in every API response — the feed, swipe response, and matches list never disclose who liked whom unilaterally.
-2. **One-sided incoming likes are not queryable** — there is no API endpoint that exposes which profiles liked the demo user.
-3. **Only a mutual match reveals interest** — `isMatch: true` in the swipe response is the only signal, and it appears only in the moment of mutual confirmation.
-4. **The demo user ID is set server-side** — `DEMO_USER_ID` is a constant in each route file, never read from the request body or query string.
+1. `hasLikedMe` is always `false` in every API response
+2. No endpoint exposes one-sided incoming likes
+3. `isMatch: true` is the only signal of mutual interest, returned only at the moment it becomes mutual
+4. `DEMO_USER_ID` is a server-side constant — never read from the request
 
 ---
 
-## Data Mapping (DB → Frontend)
-
-| DB field | Frontend field | Notes |
-|---|---|---|
-| `user.city` | `location` | Frontend `UserProfile` uses `location` |
-| `user.interests` (JSON string) | `interests` (string[]) | `JSON.parse()` applied in route |
-| — | `hasLikedMe: false` | Hardcoded; never derived from DB |
-| `match.createdAt.toISOString()` | `matchedAt` | ISO string as expected by `Match` type |
-
----
-
-## Files Created or Modified
-
-### New files (Phase 2)
-| File | Purpose |
-|---|---|
-| `src/app/api/feed/route.ts` | `GET /api/feed` — returns unswiped profiles |
-| `src/app/api/swipe/route.ts` | `POST /api/swipe` — records swipe, detects match |
-| `src/app/api/matches/route.ts` | `GET /api/matches` — returns mutual matches |
-| `prisma/test-logic.js` | 26-case logic and edge-case test suite |
-
-### Modified files (Phase 2)
-| File | Change |
-|---|---|
-| `PROJECT_CONTEXT.md` | Updated for Phase 2 (this file) |
-
-### Unchanged files (do not touch)
-- All frontend pages, components, services, types and CSS — untouched
-- `prisma/schema.prisma`, `prisma/seed.ts`, `src/lib/db.ts` — untouched
-- `package.json`, `pnpm-workspace.yaml`, `.gitignore` — untouched
-
----
-
-### Demo User
+## Seed Data
 
 | Field | Value |
 |---|---|
-| id | `demo-user-01` |
-| name | Alex |
-| age | 25 |
-| city | New York, NY |
-| college | NYU |
-| bio | Adventure seeker with a love for coffee, hiking, and finding the best hidden restaurants in the city. |
-| interests | Hiking, Coffee, Photography, Music |
+| Demo user id | `demo-user-01` |
+| Demo user name | Alex |
+| Demo user city | New York, NY |
+| Total profiles | 30 (profile-01 through profile-30) |
+| Pre-seeded likes → demo | 7 profiles |
 
-### Mock Profiles
-
-30 realistic profiles (profile-01 through profile-30) covering a range of names, ages (22–27), locations (Brooklyn, Manhattan, Queens, Jersey City, Hoboken), colleges and interests.
-
-### Pre-seeded Likes (profiles who liked the demo user)
-
-The following profiles have a LIKE swipe recorded targeting `demo-user-01`:
-`profile-01` (Maya), `profile-04` (Isabella), `profile-08` (Chloe), `profile-12` (Lily), `profile-17` (Aria), `profile-23` (Jade), `profile-28` (Elena)
-
-These will produce **mutual matches** in Phase 2 when the demo user swipes LIKE on any of these profiles.
-
-> **Privacy rule:** These one-sided likes must NOT be exposed in the API. Only a mutual match reveals that someone liked you.
-
----
-
-## Files Created or Modified
-
-### New files
-| File | Purpose |
-|---|---|
-| `prisma/schema.prisma` | Prisma schema with User, Swipe, Match models |
-| `prisma/seed.ts` | Idempotent seed (demo user + 30 profiles + 7 pre-likes) |
-| `prisma/dev.db` | SQLite database (gitignored) |
-| `prisma/migrations/…/migration.sql` | Auto-generated migration SQL |
-| `src/lib/db.ts` | Prisma client singleton (Next.js safe) |
-| `.env` | `DATABASE_URL=file:./prisma/dev.db` |
-| `.npmrc` | pnpm config |
-| `PROJECT_CONTEXT.md` | This file |
-
-### Modified files
-| File | Change |
-|---|---|
-| `package.json` | Added Prisma/tsx deps, db:* scripts, prisma.seed config |
-| `pnpm-workspace.yaml` | Set `allowBuilds` for Prisma/esbuild (pnpm v12 requirement) |
-| `.gitignore` | Added `*.db`, `*.db-journal`, etc. |
-
-### Unchanged files (frontend — do not touch)
-- `src/app/**/*.tsx` — all page components
-- `src/components/**/*.tsx` — DiscoverApp, ProfileCard, BottomNavigation
-- `src/services/**/*.ts` — feedService, swipeService, matchService
-- `src/data/**/*.ts` — mockAdapter, mockProfiles
-- `src/types/index.ts` — UserProfile, SwipeAction, Match types
-- `src/app/globals.css` — all styling
+**Profiles who have already liked Alex** (swipe LIKE on these to trigger a match):
+- `profile-01` Maya, `profile-04` Isabella, `profile-08` Chloe, `profile-12` Lily
+- `profile-17` Aria, `profile-23` Jade, `profile-28` Elena
 
 ---
 
 ## Commands
 
-### First-time setup
-
 ```bash
 # Install dependencies
 pnpm install
 
-# Generate Prisma client
-pnpm db:generate
-
-# Run migrations (creates dev.db)
+# First-time database setup (migrate + seed)
 pnpm db:migrate
 
-# Seed the database
+# Reset database to clean seeded state
+pnpm db:reset
+
+# Seed only (without migration)
 pnpm db:seed
-```
 
-### Ongoing development
-
-```bash
-# Start dev server (still uses mock data until Phase 3)
+# Start development server
 pnpm dev
 
-# Re-generate Prisma client after schema changes
-pnpm db:generate
+# Run production build
+pnpm build
 
-# Create new migration after schema changes
-pnpm db:migrate
+# Run logic test suite
+pnpm test
 
-# Reseed (safe to run repeatedly — idempotent)
-pnpm db:seed
-
-# Open Prisma Studio (visual DB browser)
+# Open Prisma Studio
 pnpm db:studio
 ```
 
-> **Note:** `pnpm db:migrate` auto-runs the seed after migration. To run only the seed, use `pnpm db:seed`.
+---
+
+## Files Created or Modified by Phase
+
+### Phase 1 — Database Foundation
+| File | Action | Notes |
+|---|---|---|
+| `prisma/schema.prisma` | Created | User, Swipe, Match models |
+| `prisma/seed.ts` | Created | Demo user + 30 profiles + 7 pre-likes |
+| `prisma/migrations/…/migration.sql` | Created | Auto-generated by Prisma |
+| `src/lib/db.ts` | Created | Prisma singleton (Next.js hot-reload safe) |
+| `.env` | Created | `DATABASE_URL=file:./dev.db` |
+| `.npmrc` | Created | pnpm config |
+| `package.json` | Modified | Added Prisma deps, db:* scripts |
+| `pnpm-workspace.yaml` | Modified | `allowBuilds` for Prisma/esbuild (pnpm v12) |
+| `.gitignore` | Modified | Added `*.db` entries |
+
+### Phase 2 — Backend API
+| File | Action | Notes |
+|---|---|---|
+| `src/app/api/feed/route.ts` | Created | `GET /api/feed` |
+| `src/app/api/swipe/route.ts` | Created | `POST /api/swipe` |
+| `src/app/api/matches/route.ts` | Created | `GET /api/matches` |
+| `prisma/test-logic.js` | Created | 26-case test suite |
+
+### Phase 3 — Frontend Integration
+| File | Action | Notes |
+|---|---|---|
+| `src/services/feedService.ts` | Modified | Calls `GET /api/feed` directly; mock removed |
+| `src/services/swipeService.ts` | Modified | Calls `POST /api/swipe` directly; mock removed |
+| `src/services/matchService.ts` | Modified | Calls `GET /api/matches` directly; mock removed |
+| `README.md` | Created | Full project documentation |
+| `package.json` | Modified | Added `db:reset` and `test` scripts |
+| `PROJECT_CONTEXT.md` | Modified | Updated for Phase 3 (this file) |
+
+### Never modified (preserved exactly)
+- `src/app/**/*.tsx` — all page components
+- `src/components/**/*.tsx` — DiscoverApp, ProfileCard, BottomNavigation
+- `src/types/index.ts` — shared TypeScript types
+- `src/app/globals.css` — all styling
+- `src/data/mockAdapter.ts`, `src/data/mockProfiles.ts` — retained but no longer called at runtime
 
 ---
 
-## Current State (Phase 2 Complete)
+## Verification Results (Phase 3)
 
-### ✅ Completed
+### TypeScript
+```
+tsc --noEmit → 0 errors
+```
 
-**Phase 1:**
-1. Codebase audit — full understanding of existing architecture.
-2. Prisma + SQLite setup — `prisma@6.19.3`, `@prisma/client@6.19.3`.
-3. Schema — User, Swipe, Match with FKs and unique constraints.
-4. Migration `20261118172331_init` applied; `dev.db` at `prisma/dev.db`.
-5. Seed — 1 demo user + 30 profiles + 7 pre-seeded incoming LIKE swipes.
-6. Prisma client singleton at `src/lib/db.ts`.
+### Production build
+```
+next build → compiled successfully
+Routes: / ○, /discover ○, /home ○, /matches ○
+         /api/feed ƒ, /api/swipe ƒ, /api/matches ƒ
+```
 
-**Phase 2:**
-7. `GET /api/feed` — returns unswiped profiles, excludes demo user and already-swiped.
-8. `POST /api/swipe` — validates input, records swipe, detects and creates mutual Match.
-9. `GET /api/matches` — returns confirmed matches with other-user profile data.
-10. Matching logic — mutual-LIKE detection, normalized ID ordering, `upsert` for safety.
-11. Privacy enforcement — `hasLikedMe: false` everywhere, demo user ID is server-side only.
-12. Input validation — missing fields (400), unknown profile (404), duplicate swipe (409).
-13. TypeScript — zero `tsc --noEmit` errors across all routes.
-14. Test suite — 26/26 assertions pass (Prisma-level + HTTP-level verification).
-
-### Verification Results
-
-**Logic tests (Prisma-level, `node prisma/test-logic.js`):**
+### Logic tests (`pnpm test` / `node prisma/test-logic.js`)
 ```
 26 passed, 0 failed
 ```
 
-**HTTP tests (against running dev server):**
+### End-to-end HTTP tests (dev server)
 ```
-GET  /api/feed                              → 200, 30 profiles, hasLikedMe=false ✅
-POST /api/swipe  { profile-01, LIKE }       → 200, isMatch=true, matchedName=Maya ✅
-GET  /api/matches                           → 200, 1 match, profile=Maya ✅
-POST /api/swipe  { profile-01, LIKE } again → 409 Conflict (duplicate) ✅
-POST /api/swipe  { fake-id, LIKE }          → 404 Not Found ✅
+GET  /api/feed                         → 200, 30 profiles, hasLikedMe=false  ✅
+POST /api/swipe { profile-02, PASS }   → 200, isMatch=false                  ✅
+POST /api/swipe { profile-03, LIKE }   → 200, isMatch=false (no mutual)      ✅
+POST /api/swipe { profile-01, LIKE }   → 200, isMatch=true, name=Maya        ✅
+GET  /api/matches                      → 200, 1 match, profile=Maya           ✅
+POST /api/swipe { profile-01, LIKE }   → 409 Conflict (duplicate)             ✅
+POST /api/swipe { does-not-exist }     → 404 Not Found                        ✅
+GET  /api/feed (after 3 swipes)        → 200, 27 profiles                     ✅
+Privacy: Isabella in feed, hasLikedMe=false (pre-liked, not disclosed)        ✅
 ```
 
-**TypeScript:** ✅ zero errors
+### Assignment checklist
+
+| Requirement | Status |
+|---|---|
+| Feed loads profiles from database | ✅ |
+| Like action recorded in DB | ✅ |
+| Pass action recorded in DB | ✅ |
+| Mutual like creates a match | ✅ |
+| One-sided likes never exposed | ✅ |
+| Already-swiped profiles never reappear | ✅ |
+| Match celebration overlay shown | ✅ |
+| Matches page shows mutual matches | ✅ |
+| Data persists after page refresh | ✅ |
+| Data persists after server restart | ✅ |
+| Duplicate swipe rejected (409) | ✅ |
+| Invalid profile ID rejected (404) | ✅ |
+| Invalid action rejected (400) | ✅ |
+| Empty feed state handled | ✅ |
+| Error state with retry handled | ✅ |
+| Loading state shown | ✅ |
+| TypeScript passes with zero errors | ✅ |
+| Production build succeeds | ✅ |
+| Existing design and animations preserved | ✅ |
+| No unnecessary dependencies added | ✅ |
 
 ---
 
-## Pending Work
+## Architecture Summary
 
-### Phase 3 — Frontend Integration
+```
+Browser (React)
+  │
+  ├─ feedService    ──→  GET  /api/feed      ──→  Prisma → SQLite
+  ├─ swipeService   ──→  POST /api/swipe     ──→  Prisma → SQLite
+  └─ matchService   ──→  GET  /api/matches   ──→  Prisma → SQLite
+```
 
-The existing services (`feedService`, `swipeService`, `matchService`) still route to the mock adapter when `NEXT_PUBLIC_USE_MOCK_DATA !== 'false'`. The API routes are ready; the frontend just needs to be pointed at them.
-
-**Tasks:**
-
-1. **Switch services to real API**
-   - In each service file, update the non-mock path URLs:
-     - `feedService.ts`: `/feed` → `/api/feed`
-     - `swipeService.ts`: `/swipe` → `/api/swipe`
-     - `matchService.ts`: `/matches` → `/api/matches`
-   - Set `NEXT_PUBLIC_USE_MOCK_DATA=false` in `.env` (or remove the mock flag logic entirely)
-
-2. **End-to-end verification**
-   - Swipe cards in browser → verify swipes persist in DB after page refresh
-   - Swipe LIKE on Maya (profile-01, pre-liked demo) → match celebration modal appears
-   - Navigate to `/matches` → Maya appears in match list from real DB
-   - Restart dev server → matches and swipe history survive
-
-3. **Edge cases**
-   - Swipe all 30 profiles → "all caught up" empty state shows
-   - Return to discover after swiping all → feed stays empty
-   - Confirm no match for PASS even on pre-liked profiles
-
-4. **README finalization**
-   - Add setup instructions, project description and screenshots
-
+The frontend never touches the database directly. All persistence goes through the Next.js API routes, which use Prisma with a single shared SQLite file (`prisma/dev.db`).

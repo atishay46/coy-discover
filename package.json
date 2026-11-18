@@ -9,8 +9,10 @@
     "start": "next start",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "db:reset": "prisma migrate reset --force",
     "db:seed": "node_modules/.bin/tsx prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "test": "node prisma/test-logic.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
