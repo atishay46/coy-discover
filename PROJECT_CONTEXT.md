@@ -1,6 +1,6 @@
 # PROJECT_CONTEXT.md — Coy Discover
 
-> Last updated: **Phase 3 complete — application fully integrated and verified** (2026-11-18)
+> Last updated: **Reset demo feature added** (2026-11-19)
 
 ---
 
@@ -257,6 +257,14 @@ pnpm db:studio
 | `README.md` | Created | Full project documentation |
 | `package.json` | Modified | Added `db:reset` and `test` scripts |
 | `PROJECT_CONTEXT.md` | Modified | Updated for Phase 3 (this file) |
+
+### Post-Phase 3 — Reset Demo Feature
+| File | Action | Notes |
+|---|---|---|
+| `src/app/api/dev/reset/route.ts` | Created | `POST /api/dev/reset` — dev-only endpoint; deletes demo user swipes and matches, re-seeds incoming likes |
+| `src/components/ResetDemoButton.tsx` | Created | Dev-only client button with confirmation dialog; shown in topbar only when `NODE_ENV === 'development'` |
+| `src/components/DiscoverApp.tsx` | Modified | Imports `ResetDemoButton`, renders it in topbar (dev only), added `topbar-right` wrapper |
+| `src/app/globals.css` | Modified | Added `.reset-demo-button`, `.topbar-right`, and `.spin` keyframe styles |
 
 ### Never modified (preserved exactly)
 - `src/app/**/*.tsx` — all page components

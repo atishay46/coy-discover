@@ -10,9 +10,12 @@ interface ProfileCardProps {
   onSwipe: (direction: 'LIKE' | 'PASS') => void
   disabled: boolean
   stackIndex?: number
+  // When a button triggers the swipe, this tells the card which direction to exit.
+  // During drag the card reads x.get() instead (exitDirection is undefined).
+  exitDirection?: 'LIKE' | 'PASS'
 }
 
-export function ProfileCard({ profile, onSwipe, disabled, stackIndex = 0 }: ProfileCardProps) {
+export function ProfileCard({ profile, onSwipe, disabled, stackIndex = 0, exitDirection }: ProfileCardProps) {
   const x = useMotionValue(0)
   const rotate = useTransform(x, [-220, 220], [-12, 12])
   const likeOpacity = useTransform(x, [30, 130], [0, 1])
@@ -21,6 +24,10 @@ export function ProfileCard({ profile, onSwipe, disabled, stackIndex = 0 }: Prof
   function handleDragEnd(_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) {
     if (Math.abs(info.offset.x) > 100 && !disabled) onSwipe(info.offset.x > 0 ? 'LIKE' : 'PASS')
   }
+
+  // Decide exit direction: button-triggered swipe uses exitDirection prop;
+  // drag-triggered swipe uses the actual x position.
+  const exitRight = exitDirection === 'LIKE' || (exitDirection === undefined && x.get() > 0)
 
   return (
     <motion.article
@@ -32,7 +39,7 @@ export function ProfileCard({ profile, onSwipe, disabled, stackIndex = 0 }: Prof
       onDragEnd={handleDragEnd}
       initial={{ scale: 0.97, y: 12, opacity: 0 }}
       animate={{ scale: 1 - stackIndex * 0.035, y: stackIndex * 10, opacity: 1 }}
-      exit={{ x: x.get() > 0 ? 500 : -500, opacity: 0, rotate: x.get() > 0 ? 18 : -18 }}
+      exit={{ x: exitRight ? 500 : -500, opacity: 0, rotate: exitRight ? 18 : -18 }}
       transition={{ type: 'spring', stiffness: 260, damping: 25 }}
       aria-label={`${profile.name}, ${profile.age}`}
     >

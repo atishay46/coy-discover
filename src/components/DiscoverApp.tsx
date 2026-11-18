@@ -6,9 +6,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { Heart, RefreshCw, Sparkles, X } from 'lucide-react'
 import { BottomNavigation } from './BottomNavigation'
 import { ProfileCard } from './ProfileCard'
+import { ResetDemoButton } from './ResetDemoButton'
 import { feedService } from '@/services/feedService'
 import { swipeService } from '@/services/swipeService'
 import type { UserProfile, SwipeAction } from '@/types'
+
+const IS_DEV = process.env.NODE_ENV === 'development'
 
 function CoyLogo() { return <a className="wordmark" href="/" aria-label="Coy home">coy<span>.</span></a> }
 
@@ -39,6 +42,8 @@ export function DiscoverApp({ screen = 'Discover' }: { screen?: 'Home' | 'Discov
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [matchedProfile, setMatchedProfile] = useState<UserProfile | null>(null)
+  // Tracks the exit direction of the top card so button-triggered swipes animate correctly.
+  const [exitDirection, setExitDirection] = useState<'LIKE' | 'PASS' | undefined>(undefined)
   const router = useRouter()
 
   const loadFeed = useCallback(async () => {
@@ -58,6 +63,7 @@ export function DiscoverApp({ screen = 'Discover' }: { screen?: 'Home' | 'Discov
     const current = profiles[0]
     if (!current || busy) return
     setBusy(true)
+    setExitDirection(action)
     try {
       const result = await swipeService.submitSwipe(current.id, action)
       if (!result.success) throw new Error('We could not save that choice. Please try again.')
@@ -65,20 +71,23 @@ export function DiscoverApp({ screen = 'Discover' }: { screen?: 'Home' | 'Discov
       if (result.isMatch && result.matchedProfile) setMatchedProfile(result.matchedProfile)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Your choice could not be saved.')
-    } finally { setBusy(false) }
+    } finally {
+      setBusy(false)
+      setExitDirection(undefined)
+    }
   }
 
   const goMatches = () => router.push('/matches')
 
   return (
     <main className="app-shell">
-      <header className="topbar"><CoyLogo /><div className="discover-label"><span className="pulse-dot" /> {screen === 'Discover' ? 'A little serendipity' : screen}</div><button className="avatar-button" aria-label="Your profile">A</button></header>
+      <header className="topbar"><CoyLogo /><div className="discover-label"><span className="pulse-dot" /> {screen === 'Discover' ? 'A little serendipity' : screen}</div><div className="topbar-right">{IS_DEV && <ResetDemoButton onReset={() => void loadFeed()} />}<button className="avatar-button" aria-label="Your profile">A</button></div></header>
       <section className="discover-content" aria-label="Discover people">
         <div className="page-heading"><div><span className="eyebrow">THE GOOD KIND OF BUTTERFLIES</span><h1>Someone new,<br /><em>just for you.</em></h1></div><span className="daily-badge"><Sparkles size={14} /> today&apos;s picks</span></div>
         <div className="card-stage" aria-live="polite">
           {loading ? <div className="state-card"><div className="loader-heart"><Heart fill="currentColor" /></div><strong>Finding your people...</strong><span>Just a little moment.</span></div> : error ? <div className="state-card"><div className="loader-heart error-icon"><Sparkles /></div><strong>Oops, a little hiccup.</strong><span>{error}</span><button className="secondary-button" onClick={() => void loadFeed()}>Try again</button></div> : profiles.length === 0 ? <div className="state-card"><div className="loader-heart"><Heart fill="currentColor" /></div><strong>You&apos;re all caught up.</strong><span>New faces are on their way. Come back soon!</span><button className="secondary-button" onClick={() => void loadFeed()}><RefreshCw size={16} /> Refresh picks</button></div> : (
             <AnimatePresence initial={false}>
-              {profiles.slice(0, 3).reverse().map((profile, index) => <ProfileCard key={profile.id} profile={profile} onSwipe={choose} disabled={busy} stackIndex={2 - index} />)}
+              {profiles.slice(0, 3).reverse().map((profile, index) => <ProfileCard key={profile.id} profile={profile} onSwipe={choose} disabled={busy} stackIndex={2 - index} exitDirection={2 - index === 0 ? exitDirection : undefined} />)}
             </AnimatePresence>
           )}
         </div>
