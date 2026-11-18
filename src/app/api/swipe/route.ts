@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import type { UserProfile } from '@/types'
 
-// The hardcoded demo user — no auth system needed for this assignment
 const DEMO_USER_ID = 'demo-user-01'
 
-// Helper: convert a DB User row to the UserProfile shape the frontend expects
+// Maps a DB User row to the shape the frontend expects.
+// city -> location; interests JSON string -> array; hasLikedMe always false (privacy rule).
 function toUserProfile(user: {
   id: string
   name: string
@@ -23,15 +23,14 @@ function toUserProfile(user: {
     bio: user.bio,
     photo: user.photo,
     interests: JSON.parse(user.interests) as string[],
-    hasLikedMe: false, // Never expose one-sided likes (privacy rule)
+    hasLikedMe: false,
   }
 }
 
 // POST /api/swipe
 // Body: { targetUserId: string, action: "LIKE" | "PASS" }
-// Records the swipe, then checks for a mutual like to create a Match.
+// Records the swipe and creates a Match on mutual like.
 export async function POST(request: NextRequest) {
-  // --- 1. Parse and validate the request body ---
   let body: unknown
   try {
     body = await request.json()
@@ -53,18 +52,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'action must be "LIKE" or "PASS".' }, { status: 400 })
   }
 
-  // --- 2. Prevent swiping on yourself ---
   if (targetUserId === DEMO_USER_ID) {
     return NextResponse.json({ error: 'You cannot swipe on yourself.' }, { status: 400 })
   }
 
-  // --- 3. Confirm the target profile exists ---
   const targetUser = await prisma.user.findUnique({ where: { id: targetUserId } })
   if (!targetUser) {
     return NextResponse.json({ error: 'Profile not found.' }, { status: 404 })
   }
 
-  // --- 4. Reject duplicate swipes ---
   const existingSwipe = await prisma.swipe.findUnique({
     where: {
       fromUserId_toUserId: {
@@ -80,7 +76,6 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // --- 5. Record the swipe ---
   await prisma.swipe.create({
     data: {
       fromUserId: DEMO_USER_ID,
@@ -89,12 +84,10 @@ export async function POST(request: NextRequest) {
     },
   })
 
-  // --- 6. Check for a mutual like (only relevant when action is LIKE) ---
   let isMatch = false
   let matchedProfile: UserProfile | undefined
 
   if (action === 'LIKE') {
-    // Did the target user already LIKE the demo user?
     const reverseSwipe = await prisma.swipe.findUnique({
       where: {
         fromUserId_toUserId: {
@@ -105,9 +98,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (reverseSwipe?.action === 'LIKE') {
-      // It's a mutual like — create a Match record.
-      // Normalize ordering so (A,B) and (B,A) always produce the same row,
-      // satisfying the unique constraint on (userOneId, userTwoId).
+      // Normalize IDs so (A,B) and (B,A) always map to the same Match row.
       const [userOneId, userTwoId] =
         DEMO_USER_ID < targetUserId
           ? [DEMO_USER_ID, targetUserId]
@@ -115,7 +106,7 @@ export async function POST(request: NextRequest) {
 
       await prisma.match.upsert({
         where: { userOneId_userTwoId: { userOneId, userTwoId } },
-        update: {}, // already exists — no changes needed
+        update: {},
         create: { userOneId, userTwoId },
       })
 

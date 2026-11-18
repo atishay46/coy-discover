@@ -1,17 +1,28 @@
 # Coy Discover
 
-A dating app discovery feature built as a full-stack assignment. Swipe through profiles, create mutual matches, and view your connections — all backed by a persistent SQLite database.
+A full-stack dating-app discovery feature built as a college assignment. Swipe through profiles, create mutual matches, and view your connections, all backed by a persistent SQLite database.
 
 ---
 
 ## Features
 
-- **Swipe cards** — drag right to like, drag left to pass (or use the buttons)
-- **Mutual matching** — a match is only created when both sides like each other
-- **Private likes** — one-sided likes are never exposed; only a mutual match reveals them
-- **Persistent data** — swipes and matches survive page refreshes and server restarts
-- **Match celebration** — animated overlay appears instantly when a mutual match occurs
-- **Matches page** — browse all confirmed matches with profile details
+- **Swipe cards** - drag right to like, drag left to pass, or use the action buttons
+- **Mutual matching** - a match is only created when both users like each other
+- **Private likes** - one-sided likes are never exposed through any API response
+- **Persistent data** - swipes and matches survive page refreshes and server restarts
+- **Match celebration** - animated overlay appears when a mutual match occurs
+- **Matches page** - browse all confirmed matches with profile details
+- **Demo reset** - one-click reset in development to restore the original seeded state
+
+---
+
+## Screenshots
+
+> Add screenshots here after running the app.
+
+| Discover | Match Celebration | Matches |
+|---|---|---|
+| _(screenshot)_ | _(screenshot)_ | _(screenshot)_ |
 
 ---
 
@@ -19,12 +30,24 @@ A dating app discovery feature built as a full-stack assignment. Swipe through p
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 16.4.6 (App Router) |
-| UI | React 19, TypeScript 5.7 |
+| Framework | Next.js 16 (App Router) |
+| UI | React 19, TypeScript 5 |
 | Styling | Tailwind CSS 4, Framer Motion 14 |
 | ORM | Prisma 6 |
-| Database | SQLite (local file) |
+| Database | SQLite (local file via `prisma/dev.db`) |
 | Package manager | pnpm 12 |
+
+---
+
+## How It Works
+
+1. The app runs as a single demo user (Alex, `demo-user-01`). There is no login.
+2. `GET /api/feed` returns all profiles Alex has not yet swiped on.
+3. Swiping right (or clicking the heart button) sends `POST /api/swipe` with `action: "LIKE"`.
+4. Swiping left (or clicking the X button) sends `POST /api/swipe` with `action: "PASS"`.
+5. After recording the swipe, the API checks whether the target user has already liked Alex. If so, a Match row is created and `isMatch: true` is returned.
+6. The match celebration overlay appears immediately. The Matches page reflects the new match on next load.
+7. `hasLikedMe` is always `false` in every API response. No endpoint reveals one-sided incoming likes.
 
 ---
 
@@ -34,36 +57,38 @@ A dating app discovery feature built as a full-stack assignment. Swipe through p
 project/
 ├── prisma/
 │   ├── schema.prisma          # Database schema (User, Swipe, Match)
-│   ├── seed.ts                # Seed script — demo user + 30 profiles
-│   ├── test-logic.js          # API logic and edge-case tests
+│   ├── seed.ts                # Seed script: demo user + 30 profiles + 7 incoming likes
+│   ├── test-logic.js          # Logic and edge-case tests (run with node)
 │   └── migrations/            # Prisma migration history
 ├── src/
 │   ├── app/
 │   │   ├── api/
-│   │   │   ├── feed/route.ts    # GET /api/feed
-│   │   │   ├── swipe/route.ts   # POST /api/swipe
-│   │   │   └── matches/route.ts # GET /api/matches
-│   │   ├── discover/page.tsx    # Discover page
-│   │   ├── matches/page.tsx     # Matches page
-│   │   └── home/page.tsx        # Home page
+│   │   │   ├── feed/route.ts       # GET /api/feed
+│   │   │   ├── swipe/route.ts      # POST /api/swipe
+│   │   │   ├── matches/route.ts    # GET /api/matches
+│   │   │   └── dev/reset/route.ts  # POST /api/dev/reset (development only)
+│   │   ├── discover/page.tsx   # Discover page
+│   │   ├── matches/page.tsx    # Matches page
+│   │   └── home/page.tsx       # Home page
 │   ├── components/
-│   │   ├── DiscoverApp.tsx      # Main swipe UI with match celebration
-│   │   ├── ProfileCard.tsx      # Draggable swipe card (Framer Motion)
-│   │   └── BottomNavigation.tsx # Tab bar navigation
+│   │   ├── DiscoverApp.tsx     # Main swipe UI with match celebration overlay
+│   │   ├── ProfileCard.tsx     # Draggable swipe card (Framer Motion)
+│   │   ├── ResetDemoButton.tsx # Dev-only reset button
+│   │   └── BottomNavigation.tsx
 │   ├── services/
-│   │   ├── feedService.ts       # Calls GET /api/feed
-│   │   ├── swipeService.ts      # Calls POST /api/swipe
-│   │   └── matchService.ts      # Calls GET /api/matches
+│   │   ├── feedService.ts      # Calls GET /api/feed
+│   │   ├── swipeService.ts     # Calls POST /api/swipe
+│   │   └── matchService.ts     # Calls GET /api/matches
 │   ├── lib/
-│   │   └── db.ts                # Prisma client singleton
+│   │   └── db.ts               # Prisma client singleton
 │   └── types/
-│       └── index.ts             # Shared TypeScript types
+│       └── index.ts            # Shared TypeScript types
 └── package.json
 ```
 
 ---
 
-## Setup
+## Installation
 
 ### Prerequisites
 
@@ -76,22 +101,29 @@ project/
 pnpm install
 ```
 
-### Environment
+---
 
-Create a `.env` file in the project root (already included):
+## Environment Variables
+
+A `.env` file is already included in the project root:
 
 ```
 DATABASE_URL="file:./dev.db"
 ```
 
-### Database setup
+This tells Prisma to create the SQLite database at `prisma/dev.db`. Do not change this path unless you also update the schema.
+
+---
+
+## Database Setup
+
+Run migrations and seed the database:
 
 ```bash
-# Run migrations and seed in one step
 pnpm db:migrate
 ```
 
-This creates the SQLite database at `prisma/dev.db`, applies the schema, and seeds it with 31 users (1 demo + 30 profiles) and 7 pre-seeded likes.
+This applies the schema migrations and seeds 31 users (1 demo user + 30 profiles) and 7 pre-seeded incoming likes.
 
 To reset and reseed from scratch:
 
@@ -99,13 +131,22 @@ To reset and reseed from scratch:
 pnpm db:reset
 ```
 
-### Run the app
+---
+
+## Running the App
 
 ```bash
 pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+For a production build:
+
+```bash
+pnpm build
+pnpm start
+```
 
 ---
 
@@ -117,17 +158,18 @@ Open [http://localhost:3000](http://localhost:3000).
 | `pnpm build` | Build for production |
 | `pnpm start` | Start the production server |
 | `pnpm db:migrate` | Apply migrations and seed the database |
-| `pnpm db:seed` | Seed only (without migration) |
+| `pnpm db:seed` | Run the seed script only |
+| `pnpm db:reset` | Reset database and reseed from scratch |
 | `pnpm db:generate` | Regenerate Prisma client after schema changes |
-| `pnpm db:studio` | Open Prisma Studio (visual DB browser) |
+| `pnpm db:studio` | Open Prisma Studio (visual database browser) |
 
 ---
 
 ## API Reference
 
-### `GET /api/feed`
+### GET /api/feed
 
-Returns profiles the demo user has not yet swiped on.
+Returns all profiles that the demo user has not yet swiped on.
 
 **Response:**
 ```json
@@ -149,9 +191,9 @@ Returns profiles the demo user has not yet swiped on.
 
 ---
 
-### `POST /api/swipe`
+### POST /api/swipe
 
-Records a swipe. Creates a match if both users have liked each other.
+Records a swipe and creates a Match if both users have liked each other.
 
 **Request body:**
 ```json
@@ -178,13 +220,13 @@ Records a swipe. Creates a match if both users have liked each other.
 
 | Status | Reason |
 |---|---|
-| 400 | Missing/invalid fields, or swiping on yourself |
+| 400 | Missing or invalid fields, or swiping on yourself |
 | 404 | Profile not found |
 | 409 | Already swiped on this profile |
 
 ---
 
-### `GET /api/matches`
+### GET /api/matches
 
 Returns all confirmed mutual matches for the demo user.
 
@@ -201,38 +243,35 @@ Returns all confirmed mutual matches for the demo user.
 
 ---
 
-## Demo
+### POST /api/dev/reset
 
-The app runs as a single demo user (**Alex**). The database is pre-seeded with 30 profiles and 7 profiles who have already liked Alex:
-
-| Profile | Pre-liked Alex? |
-|---|---|
-| Maya | ✅ Swipe LIKE → instant match |
-| Isabella | ✅ Swipe LIKE → instant match |
-| Chloe | ✅ Swipe LIKE → instant match |
-| Lily | ✅ Swipe LIKE → instant match |
-| Aria | ✅ Swipe LIKE → instant match |
-| Jade | ✅ Swipe LIKE → instant match |
-| Elena | ✅ Swipe LIKE → instant match |
-
-Swipe LIKE on any of the above to trigger the match celebration. All other profiles will produce a one-sided like (no match).
+Clears all swipes and matches for the demo user and restores the original seeded incoming likes. Returns `403` outside of development.
 
 ---
 
-## Database Schema
+## Demo
 
-```
-User        — id, name, age, photo, bio, city, college, interests (JSON), timestamps
-Swipe       — fromUserId → User, toUserId → User, action (LIKE/PASS), unique(from,to)
-Match       — userOneId → User, userTwoId → User, unique(one,two) with normalized ordering
-```
+The app is pre-seeded with 30 profiles. Seven of them have already liked Alex, so swiping LIKE on any of them triggers an instant match:
+
+| Profile | Swipe LIKE to get a match |
+|---|---|
+| Maya | yes |
+| Isabella | yes |
+| Chloe | yes |
+| Lily | yes |
+| Aria | yes |
+| Jade | yes |
+| Elena | yes |
+
+All other profiles will record a one-sided like with no match shown.
+
+In development, use the **Reset demo** button in the top bar to clear all swipes and matches and start over.
 
 ---
 
 ## Privacy Design
 
-- `hasLikedMe` is always `false` in every API response
-- No endpoint reveals one-sided incoming likes
-- The demo user ID (`demo-user-01`) is a server-side constant — never read from the client
-- Only `isMatch: true` in the swipe response reveals mutual interest, and only at the moment it becomes mutual
-
+- `hasLikedMe` is always `false` in every API response.
+- No endpoint reveals who has liked the demo user.
+- The demo user ID is a server-side constant and is never read from the client request.
+- A match (and therefore mutual interest) is revealed only at the moment both users have liked each other, via `isMatch: true` in the swipe response.

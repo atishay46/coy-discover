@@ -3,8 +3,7 @@
 import { useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 
-// This component is only rendered in development (see usage in DiscoverApp).
-// It resets all demo swipes and matches via the /api/dev/reset endpoint.
+// Rendered only in development (see DiscoverApp). Resets swipes and matches via /api/dev/reset.
 export function ResetDemoButton({ onReset }: { onReset: () => void }) {
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<'idle' | 'done' | 'error'>('idle')
@@ -20,12 +19,10 @@ export function ResetDemoButton({ onReset }: { onReset: () => void }) {
 
     try {
       const res = await fetch('/api/dev/reset', { method: 'POST' })
-      // Parse JSON safely — the body may be empty on a server crash
       let data: { error?: string } = {}
       try { data = await res.json() as { error?: string } } catch { /* empty body */ }
       if (!res.ok) throw new Error(data.error ?? `Reset failed (${res.status}).`)
       setStatus('done')
-      // Give the user a moment to see the confirmation, then reload the feed
       setTimeout(() => {
         setStatus('idle')
         onReset()

@@ -18,18 +18,14 @@ model User {
   bio       String
   city      String
   college   String?
-  interests String   // stored as JSON string (SQLite doesn't have array type)
+  interests String   // stored as JSON string (SQLite has no array type)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Swipes sent by this user
   swipesSent     Swipe[] @relation("SwipeSender")
-  // Swipes received by this user
   swipesReceived Swipe[] @relation("SwipeReceiver")
-
-  // Matches where this user is userOne or userTwo
-  matchesAsOne Match[] @relation("MatchUserOne")
-  matchesAsTwo Match[] @relation("MatchUserTwo")
+  matchesAsOne   Match[] @relation("MatchUserOne")
+  matchesAsTwo   Match[] @relation("MatchUserTwo")
 }
 
 model Swipe {
@@ -42,7 +38,6 @@ model Swipe {
   fromUser User @relation("SwipeSender", fields: [fromUserId], references: [id])
   toUser   User @relation("SwipeReceiver", fields: [toUserId], references: [id])
 
-  // Prevent duplicate swipe records (one user can only swipe another once)
   @@unique([fromUserId, toUserId])
 }
 
@@ -55,9 +50,8 @@ model Match {
   userOne User @relation("MatchUserOne", fields: [userOneId], references: [id])
   userTwo User @relation("MatchUserTwo", fields: [userTwoId], references: [id])
 
-  // Prevent duplicate matches regardless of ordering
-  // We enforce userOneId < userTwoId at the application layer,
-  // so this unique constraint covers both orderings.
+  // userOneId < userTwoId is enforced at the application layer,
+  // so this constraint prevents duplicates regardless of swipe direction.
   @@unique([userOneId, userTwoId])
 }
 
