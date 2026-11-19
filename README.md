@@ -25,7 +25,7 @@ A full-stack dating-app discovery feature built as a college assignment. Swipe t
 ![Matches Page](./screenshots/slide.png)
 
 ### Matched Persons
-![Match Success](./screenshots/yourmatches.png)
+![Match Success](./screenshots/yourMatches.png)
 
 
 ## Tech Stack
