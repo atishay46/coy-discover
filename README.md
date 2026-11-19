@@ -18,13 +18,15 @@ A full-stack dating-app discovery feature built as a college assignment. Swipe t
 
 ## Screenshots
 
-> Add screenshots here after running the app.
+### Person's Card
+![Discover Page](./screenshots/personCard.png)
 
-| Discover | Match Celebration | Matches |
-|---|---|---|
-| _(screenshot)_ | _(screenshot)_ | _(screenshot)_ |
+### Sliding Card
+![Matches Page](./screenshots/slide.png)
 
----
+### Matched Persons
+![Match Success](./screenshots/yourmatches.png)
+
 
 ## Tech Stack
 
