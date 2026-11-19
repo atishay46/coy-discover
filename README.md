@@ -1,6 +1,6 @@
 # Coy Discover
 
-A full-stack dating-app discovery feature built as a college assignment. Swipe through profiles, create mutual matches, and view your connections, all backed by a persistent SQLite database.
+A full-stack dating app discovery feature built as part of a technical assignment. Explore profiles, swipe to like or pass, discover mutual matches, and manage your connections with data stored persistently in SQLite.
 
 ---
 
